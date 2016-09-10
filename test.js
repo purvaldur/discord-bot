@@ -29,4 +29,4 @@ mybot.on("message", function(message) {
 
 mybot.loginWithToken("MTc0NTM1NzExNjMyOTE2NDgw.Ckal1w.7ShGhOlJXaWta9Tu925gC4Qkh1M");
 
-//http://live-icy.gss.dr.dk:8000/A/A05L.mp3
+//Remember to add local file containing keys and tokens!!!
