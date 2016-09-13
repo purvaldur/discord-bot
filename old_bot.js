@@ -1,7 +1,7 @@
 var Discord = require("discord.js");
 var https = require("https");
 var underscore = require('underscore');
-var lol = require('lolapi')('3fd9c519-a5b1-426f-a382-e423adf59393', 'euw');
+var lol = require('lolapi')(riot_token, 'euw');
 var token = require('tokens.js');
 
 var mybot = new Discord.Client();
@@ -158,5 +158,5 @@ mybot.on("message", function(message) {
 	}
 });
 
-mybot.loginWithToken("MTc0NTM1NzExNjMyOTE2NDgw.Ckal1w.7ShGhOlJXaWta9Tu925gC4Qkh1M");
+mybot.loginWithToken(bot_token);
 // If you still need to login with email and password, use mybot.login("email", "password");
