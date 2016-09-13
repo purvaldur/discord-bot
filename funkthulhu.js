@@ -11,6 +11,8 @@ var stationlist_string;
 var dispatcher;
 var icecast_parsed;
 var icecast_string;
+var radio;
+var radio_playing = false;
 
 function radiolist() {
     stationlist_string = "";
@@ -45,30 +47,30 @@ mybot.on("message", function(message) {
 			message.channel.sendMessage('Leaving channel named "' + voice_channel.name + '"')
     		voice_channel.leave()
 			mybot.user.setStatus("Online", "");
+            radio_playing = false;
  		}
 	}
-	if(message.content.indexOf("!radio ") != -1 && message.content !== "!radio stop" && message.content !== "!radio list") {
+	if(message.content.indexOf("!radio ") != -1 && message.content !== "!radio info" && message.content !== "!radio list") {
 	    voice_channel = message.member.voiceChannel;
 		var radio_string = message.content.replace("!radio ", "");
-		var radio = streams.streamlist[radio_string];
+		radio = streams.streamlist[radio_string];
 		if (radio !== undefined) {
 			if (!voice_channel || voice_channel.type !== 'voice') {
 				message.channel.sendMessage("Error! (are you not in a voice channel?)");
 			} else {
 				if (mybot.voiceConnections.get(message.guild.id) && mybot.voiceConnections.get(message.guild.id).channel.id == voice_channel.id) {
+                    radio_playing = true;
 					dispatcher = mybot.voiceConnections.get(message.guild.id).playStream(request(radio));
                     icecast.get(radio, function (response) {
-                        if (response && response !== undefined && response !== null) {
-                            response.on('metadata', function (metadata) {
-                                icecast_parsed = icecast.parse(metadata);
-                                icecast_string = icecast_parsed.StreamTitle.toString().replace("Senest spillet: ", "");
-                                if (icecast_string) {
-                                    message.channel.sendMessage("**Currently playing:** " + icecast_string);
-                                } else {
-                                    message.channel.sendMessage("**Currently playing:** *unable to retrieve info*");
-                                }
-                            });
-                        }
+                        response.on('metadata', function (metadata) {
+                            icecast_parsed = icecast.parse(metadata);
+                            icecast_string = icecast_parsed.StreamTitle.toString().replace("Senest spillet: ", "");
+                            if (icecast_string) {
+                                message.channel.sendMessage("**Currently playing:** " + icecast_string);
+                            } else {
+                                message.channel.sendMessage("**Currently playing:** *unable to retrieve info*");
+                            }
+                        });
                     });
 					mybot.user.setStatus("Online", "funky tunes!");
 				} else {
@@ -81,12 +83,23 @@ mybot.on("message", function(message) {
 			message.channel.sendMessage(stationlist_string);
 		}
 	}
-//	if (message.content === "!radio stop") {
-//		if (dispatcher !== undefined) {
-//			//mybot.voiceConnections.get(message.guild.id).dispatcher.end();
-//			console.log(dispatcher);
-//		}
-//	}
+	if (message.content === "!radio info") {
+        if (radio_playing == true) {
+            icecast.get(radio, function (response) {
+                response.on('metadata', function (metadata) {
+                    icecast_parsed = icecast.parse(metadata);
+                    icecast_string = icecast_parsed.StreamTitle.toString().replace("Senest spillet: ", "");
+                    if (icecast_string) {
+                        message.channel.sendMessage("**Currently playing:** " + icecast_string);
+                    } else {
+                        message.channel.sendMessage("**Currently playing:** *unable to retrieve info*");
+                    }
+                });
+            });
+        } else {
+            message.channel.sendMessage("Error! (I'm not playing anything right now, am I?)");
+        }
+	}
 	if (message.content === "!radio list") {
 		message.channel.sendMessage("The following is a list of the currently available stations:\n\n");
 		radiolist();
