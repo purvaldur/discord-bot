@@ -10,3 +10,5 @@ Command list:
 !lolgame *summonername*     | Returns live game stats for your the match that *summonername* is currently in. Only the EUW server is supported at this time  
 
 ```
+
+EDIT: THESE ARE ALL OUTDATED AND ARE COMMANDS FROM OLD_BOT.JS - WILL EDIT THIS README TO REFLECT NEW COMMANDS FROM FUNKTHULHU.JS AT SOME POINT.
