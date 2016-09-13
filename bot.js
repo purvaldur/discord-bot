@@ -2,6 +2,7 @@ var Discord = require("discord.js");
 var https = require("https");
 var underscore = require('underscore');
 var lol = require('lolapi')('3fd9c519-a5b1-426f-a382-e423adf59393', 'euw');
+var token = require('tokens.js');
 
 var mybot = new Discord.Client();
 var user;
