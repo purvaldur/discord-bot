@@ -4,11 +4,10 @@ This is a bot I wrote for the chat application called [Discord](https://discorda
 Command list:
 ```
 !ping                       | Makes the bot respond "pong"  
-!game                       | Makes the bot return the name of the game you're currently playing  
-( ͡° ͜ʖ ͡°)                    | Easter egg  
-!overwatch *username-1234*  | Returns overwatch data from the unofficial Blizzard Overwatch API. The data is fetched from api.lootbox.eu/documentation  
-!lolgame *summonername*     | Returns live game stats for your the match that *summonername* is currently in. Only the EUW server is supported at this time  
+!join                       | Makes the bot join the voice channel you're currently in, in the server. Must be in voicechannel in the same server the command was sent from to work.
+!leave                      | Much like !join but makes the bot leave the channel instead
+!radio list                 | Makes the bot return a list of radio channels available to play. These are loaded from streams.js 
+!radio #STATION             | Makes the bot start streaming a station. Station my be valid and the bot must be in the same voice channel as you for this command to work.
+!radio info                 | Makes the bot respond with metadata of the song/radio if provided by the radio stream. If not provided, it will say "unable to retrieve this info".
 
 ```
-
-EDIT: THESE ARE ALL OUTDATED AND ARE COMMANDS FROM OLD_BOT.JS - WILL EDIT THIS README TO REFLECT NEW COMMANDS FROM FUNKTHULHU.JS AT SOME POINT.
