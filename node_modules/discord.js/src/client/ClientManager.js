@@ -11,6 +11,7 @@ class ClientManager {
      * @type {Client}
      */
     this.client = client;
+
     /**
      * The heartbeat interval, null if not yet set
      * @type {?number}
@@ -25,14 +26,21 @@ class ClientManager {
    * @param {function} reject Function to run when connection fails
    */
   connectToWebSocket(token, resolve, reject) {
-    this.client.emit('debug', `Authenticated using token ${token}`);
+    this.client.emit(Constants.Events.DEBUG, `Authenticated using token ${token}`);
     this.client.token = token;
+    const timeout = this.client.setTimeout(() => reject(new Error(Constants.Errors.TOOK_TOO_LONG)), 1000 * 300);
     this.client.rest.methods.getGateway().then(gateway => {
-      this.client.emit('debug', `Using gateway ${gateway}`);
+      this.client.emit(Constants.Events.DEBUG, `Using gateway ${gateway}`);
       this.client.ws.connect(gateway);
-      this.client.once(Constants.Events.READY, () => resolve(token));
+      this.client.ws.once('close', event => {
+        if (event.code === 4004) reject(new Error(Constants.Errors.BAD_LOGIN));
+        if (event.code === 4010) reject(new Error(Constants.Errors.INVALID_SHARD));
+      });
+      this.client.once(Constants.Events.READY, () => {
+        resolve(token);
+        this.client.clearTimeout(timeout);
+      });
     }).catch(reject);
-    this.client.setTimeout(() => reject(new Error(Constants.Errors.TOOK_TOO_LONG)), 1000 * 300);
   }
 
   /**

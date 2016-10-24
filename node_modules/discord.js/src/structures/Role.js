@@ -63,6 +63,12 @@ class Role {
      * @type {boolean}
      */
     this.managed = data.managed;
+
+    /**
+     * Whether or not the role can be mentioned by anyone
+     * @type {boolean}
+     */
+    this.mentionable = data.mentionable;
   }
 
   /**
@@ -83,6 +89,14 @@ class Role {
     let col = this.color.toString(16);
     while (col.length < 6) col = `0${col}`;
     return `#${col}`;
+  }
+
+  /**
+   * The cached guild members that have this role.
+   * @type {Collection<string, GuildMember>}
+   */
+  get members() {
+    return this.guild.members.filter(m => m.roles.has(this.id));
   }
 
   /**

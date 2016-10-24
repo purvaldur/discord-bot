@@ -60,7 +60,7 @@ mybot.on("message", function(message) {
 			} else {
 				if (mybot.voiceConnections.get(message.guild.id) && mybot.voiceConnections.get(message.guild.id).channel.id == voice_channel.id) {
                     radio_playing = true;
-					dispatcher = mybot.voiceConnections.get(message.guild.id).playStream(request(radio));
+					dispatcher = mybot.voiceConnections.get(message.guild.id).playStream(request(radio), {seek:0, volume:0.1});
                     icecast.get(radio, function (response) {
                         response.on('metadata', function (metadata) {
                             icecast_parsed = icecast.parse(metadata);

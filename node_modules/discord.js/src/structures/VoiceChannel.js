@@ -35,6 +35,17 @@ class VoiceChannel extends GuildChannel {
   }
 
   /**
+   * The voice connection for this voice channel, if the client is connected
+   * @type {?VoiceConnection}
+   * @readonly
+   */
+  get connection() {
+    const connection = this.guild.voiceConnection;
+    if (connection && connection.channel.id === this.id) return connection;
+    return null;
+  }
+
+  /**
    * Sets the bitrate of the channel
    * @param {number} bitrate The new bitrate
    * @returns {Promise<VoiceChannel>}

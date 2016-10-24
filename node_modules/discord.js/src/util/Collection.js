@@ -5,13 +5,24 @@
 class Collection extends Map {
   /**
    * Returns an ordered array of the values of this collection.
-   * @returns {array}
+   * @returns {Array}
    * @example
    * // identical to:
    * Array.from(collection.values());
    */
   array() {
     return Array.from(this.values());
+  }
+
+  /**
+   * Returns an ordered array of the keys of this collection.
+   * @returns {Array}
+   * @example
+   * // identical to:
+   * Array.from(collection.keys());
+   */
+  keyArray() {
+    return Array.from(this.keys());
   }
 
   /**
@@ -23,12 +34,30 @@ class Collection extends Map {
   }
 
   /**
+   * Returns the first key in this collection.
+   * @returns {*}
+   */
+  firstKey() {
+    return this.keys().next().value;
+  }
+
+  /**
    * Returns the last item in this collection. This is a relatively slow operation,
    * since an array copy of the values must be made to find the last element.
    * @returns {*}
    */
   last() {
     const arr = this.array();
+    return arr[arr.length - 1];
+  }
+
+  /**
+   * Returns the last key in this collection. This is a relatively slow operation,
+   * since an array copy of the keys must be made to find the last element.
+   * @returns {*}
+   */
+  lastKey() {
+    const arr = this.keyArray();
     return arr[arr.length - 1];
   }
 
@@ -43,16 +72,13 @@ class Collection extends Map {
   }
 
   /**
-   * If the items in this collection have a delete method (e.g. messages), invoke
-   * the delete method. Returns an array of promises
-   * @returns {Promise[]}
+   * Returns a random key from this collection. This is a relatively slow operation,
+   * since an array copy of the keys must be made to find a random element.
+   * @returns {*}
    */
-  deleteAll() {
-    const returns = [];
-    for (const item of this.values()) {
-      if (item.delete) returns.push(item.delete());
-    }
-    return returns;
+  randomKey() {
+    const arr = this.keyArray();
+    return arr[Math.floor(Math.random() * arr.length)];
   }
 
   /**
@@ -81,9 +107,9 @@ class Collection extends Map {
    * @param {*} [value] The expected value - only applicable and required if using a property for the first argument
    * @returns {*}
    * @example
-   * collection.find('id', '123123...');
+   * collection.find('username', 'Bob');
    * @example
-   * collection.find(val => val.id === '123123...');
+   * collection.find(val => val.username === 'Bob');
    */
   find(propOrFn, value) {
     if (typeof propOrFn === 'string') {
@@ -111,9 +137,9 @@ class Collection extends Map {
    * @param {*} [value] The expected value - only applicable and required if using a property for the first argument
    * @returns {*}
    * @example
-   * collection.find('id', '123123...');
+   * collection.findKey('username', 'Bob');
    * @example
-   * collection.find(val => val.id === '123123...');
+   * collection.findKey(val => val.username === 'Bob');
    */
   /* eslint-enable max-len */
   findKey(propOrFn, value) {
@@ -139,7 +165,7 @@ class Collection extends Map {
    * @param {*} value The expected value
    * @returns {boolean}
    * @example
-   * if (collection.exists('id', '123123...')) {
+   * if (collection.exists('username', 'Bob')) {
    *  console.log('user here!');
    * }
    */
@@ -175,9 +201,7 @@ class Collection extends Map {
     if (thisArg) fn = fn.bind(thisArg);
     const arr = new Array(this.size);
     let i = 0;
-    for (const [key, val] of this) {
-      arr[i++] = fn(val, key, this);
-    }
+    for (const [key, val] of this) arr[i++] = fn(val, key, this);
     return arr;
   }
 
@@ -186,7 +210,7 @@ class Collection extends Map {
    * [Array.some()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some).
    * @param {function} fn Function used to test (should return a boolean)
    * @param {Object} [thisArg] Value to use as `this` when executing function
-   * @returns {Collection}
+   * @returns {boolean}
    */
   some(fn, thisArg) {
     if (thisArg) fn = fn.bind(thisArg);
@@ -201,7 +225,7 @@ class Collection extends Map {
    * [Array.every()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/every).
    * @param {function} fn Function used to test (should return a boolean)
    * @param {Object} [thisArg] Value to use as `this` when executing function
-   * @returns {Collection}
+   * @returns {boolean}
    */
   every(fn, thisArg) {
     if (thisArg) fn = fn.bind(thisArg);
@@ -209,6 +233,32 @@ class Collection extends Map {
       if (!fn(val, key, this)) return false;
     }
     return true;
+  }
+
+  /**
+   * Identical to
+   * [Array.reduce()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce).
+   * @param {function} fn Function used to reduce
+   * @param {*} [startVal] The starting value
+   * @returns {*}
+   */
+  reduce(fn, startVal) {
+    let currentVal = startVal;
+    for (const [key, val] of this) currentVal = fn(currentVal, val, key, this);
+    return currentVal;
+  }
+
+  /**
+   * If the items in this collection have a delete method (e.g. messages), invoke
+   * the delete method. Returns an array of promises
+   * @returns {Promise[]}
+   */
+  deleteAll() {
+    const returns = [];
+    for (const item of this.values()) {
+      if (item.delete) returns.push(item.delete());
+    }
+    return returns;
   }
 }
 
