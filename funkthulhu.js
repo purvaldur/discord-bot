@@ -127,6 +127,18 @@ mybot.on("message", function(message) {
                                 dispatcher[message.guild.id] = mybot.voiceConnections.get(message.guild.id).playStream(request(streamUrl), {seek:0, volume:0.1});
                                 message.channel.sendMessage("Currently playing: **fetching this not yet implemented**");
                                 mybot.user.setStatus("Online", "funky tunes!");
+
+                                dispatcher[message.guild.id].on('end', function() {
+                                    if (gQueue.length != 0) {
+                                        gQueue.shift();
+                                        pm.getStreamUrl(gQueue[0], function(err, streamUrl) {
+                                            dispatcher[message.guild.id] = mybot.voiceConnections.get(message.guild.id).playStream(request(streamUrl), {seek:0, volume:0.1});
+                                            message.channel.sendMessage("Currently playing: **fetching this not yet implemented**");
+                                        });
+                                    } else {
+                                        message.channel.sendMessage("No more songs left in queue");
+                                    }
+                                });
                             });
                         }
                     });
@@ -148,7 +160,6 @@ mybot.on("message", function(message) {
                 pm.getStreamUrl(gQueue[0], function(err, streamUrl) {
                     dispatcher[message.guild.id] = mybot.voiceConnections.get(message.guild.id).playStream(request(streamUrl), {seek:0, volume:0.1});
                     message.channel.sendMessage("Currently playing: **fetching this not yet implemented**");
-                    console.log(gQueue);
                 });
             } else {
                 message.channel.sendMessage("No more songs left in queue");
