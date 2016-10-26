@@ -24,6 +24,36 @@ function radiolist() {
         stationlist_string += key.toString() + "\n";
     })
 }
+function play(serverId, channel) {
+    if (gQueue.length != 0) {
+        pm.getStreamUrl(gQueue[0], function(err, streamUrl) {
+            dispatcher[serverId] = mybot.voiceConnections.get(serverId).playStream(request(streamUrl), {seek:0, volume:0.1});
+            channel.sendMessage("Currently playing: **fetching this not yet implemented**");
+            dispatcher[serverId].on('end', function() {
+                gQueue.shift();
+                if (gQueue.length != 0) {
+                    play(serverId, channel);
+                } else {
+                    channel.sendMessage("No more songs left in queue");
+                }
+            });
+        });
+    } else {
+        channel.sendMessage("No more songs left in queue");
+    }
+//    dispatcher[message.guild.id].on('end', function() {
+//        console.log("Dispatcher found dis and the gQueue length is: " + gQueue.length);
+//        if (gQueue.length != 0) {
+//            console.log("The script got inside the if statement, without doing a .shift() and the gQueue length is: " + gQueue.length);
+//            pm.getStreamUrl(gQueue[0], function(err, streamUrl) {
+//                dispatcher[message.guild.id] = mybot.voiceConnections.get(message.guild.id).playStream(request(streamUrl), {seek:0, volume:0.1});
+//                message.channel.sendMessage("Currently playing: **fetching this not yet implemented**");
+//            });
+//        } else {
+//            message.channel.sendMessage("No more songs left in queue");
+//        }
+//    });
+}
 
 mybot.on("ready", function() {
     console.log("Ready to begin! Serving in " + mybot.channels.size + " channels");
@@ -119,27 +149,16 @@ mybot.on("message", function(message) {
                     pm.search(songsearch_string, 5, function(err, res) {
                         var gSong = res.entries.filter(function(data) { return data.type == 1 }).shift();
                         if (gQueue.length != 0) {
+                            if (gQueue[0] == "placeholder") {
+                                gQueue.shift();
+                            }
                             gQueue.push(gSong.track.nid);
-                            message.channel.sendMessage("Song has been queued. It is currently number " + gQueue.length + " in the queue");
+                            var queuelength = gQueue.length - 1;
+                            message.channel.sendMessage("Song has been queued. It is currently number " + queuelength + " in the queue");
                         } else {
-                            gQueue.push(`${gSong.track.nid}`);
-                            pm.getStreamUrl(gSong.track.nid, function(err, streamUrl) {
-                                dispatcher[message.guild.id] = mybot.voiceConnections.get(message.guild.id).playStream(request(streamUrl), {seek:0, volume:0.1});
-                                message.channel.sendMessage("Currently playing: **fetching this not yet implemented**");
-                                mybot.user.setStatus("Online", "funky tunes!");
-
-                                dispatcher[message.guild.id].on('end', function() {
-                                    if (gQueue.length != 0) {
-                                        gQueue.shift();
-                                        pm.getStreamUrl(gQueue[0], function(err, streamUrl) {
-                                            dispatcher[message.guild.id] = mybot.voiceConnections.get(message.guild.id).playStream(request(streamUrl), {seek:0, volume:0.1});
-                                            message.channel.sendMessage("Currently playing: **fetching this not yet implemented**");
-                                        });
-                                    } else {
-                                        message.channel.sendMessage("No more songs left in queue");
-                                    }
-                                });
-                            });
+                            gQueue.push(gSong.track.nid);
+                            play(message.guild.id, message.channel);
+                            mybot.user.setStatus("Online", "funky tunes!");
                         }
                     });
                 });
@@ -151,23 +170,12 @@ mybot.on("message", function(message) {
 
     if (message.content === "!skip") {
         //console.log("Restarting the script...");
-        if (dispatcher[message.guild.id]) {
-            message.channel.sendMessage("Skipping song...");
-            dispatcher[message.guild.id].end();
-            gQueue.shift();
-            console.log("inside !skip event, gQueue.length = " + gQueue.length + " after the .shift()");
-            if (gQueue.length != 0) {
-                pm.getStreamUrl(gQueue[0], function(err, streamUrl) {
-                    dispatcher[message.guild.id] = mybot.voiceConnections.get(message.guild.id).playStream(request(streamUrl), {seek:0, volume:0.1});
-                    message.channel.sendMessage("Currently playing: **fetching this not yet implemented**");
-                });
-            } else {
-                message.channel.sendMessage("No more songs left in queue");
-            }
-        }
+        message.channel.sendMessage("Skipping song...");
+        dispatcher[message.guild.id].end();
         //process.exit(1);
     }
 });
+
 mybot.login(bot_token);
 process.on("uncaughtException", (error) => { if(error.code === "ECONNRESET") return; });
 
