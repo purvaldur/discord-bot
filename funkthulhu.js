@@ -141,8 +141,8 @@ mybot.on("message", function(message) {
         radiolist();
         message.channel.sendMessage(stationlist_string);
     }
-    if (message.content.startsWith("!songsearch ")) {
-        var songsearch_string = message.content.replace("!songsearch ", "");
+    if (message.content.startsWith("!gmusic play song ")) {
+        var songsearch_string = message.content.replace("!gmusic play song ", "");
         if (!voice_channel || voice_channel.type !== 'voice') {
             message.channel.sendMessage("Error! (are you not in a voice channel?)");
         } else {
