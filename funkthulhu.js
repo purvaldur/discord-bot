@@ -5,6 +5,7 @@ var request = require('request')
 var underscore = require('underscore');
 var icecast = require('icecast');
 var PlayMusic = require('playmusic');
+var fs = require('fs');
 
 var mybot = new Discord.Client();
 var pm = new PlayMusic();
@@ -17,6 +18,7 @@ var radio;
 var radio_playing = false;
 
 var gQueue = [];
+var playlist_file = 'user_playlists.json';
 
 function radiolist() {
     stationlist_string = "";
@@ -41,22 +43,22 @@ function play(serverId, channel) {
     } else {
         channel.sendMessage("No more songs left in queue");
     }
-//    dispatcher[message.guild.id].on('end', function() {
-//        console.log("Dispatcher found dis and the gQueue length is: " + gQueue.length);
-//        if (gQueue.length != 0) {
-//            console.log("The script got inside the if statement, without doing a .shift() and the gQueue length is: " + gQueue.length);
-//            pm.getStreamUrl(gQueue[0], function(err, streamUrl) {
-//                dispatcher[message.guild.id] = mybot.voiceConnections.get(message.guild.id).playStream(request(streamUrl), {seek:0, volume:0.1});
-//                message.channel.sendMessage("Currently playing: **fetching this not yet implemented**");
-//            });
-//        } else {
-//            message.channel.sendMessage("No more songs left in queue");
-//        }
-//    });
 }
+//function playlistadd(song, author) {
+//    pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
+//        pm.search(song, 5, function(err, res) {
+//            song = res.entries.filter(function(data) { return data.type == 1 }).shift();
+//            author = `{ "${}" }`
+//            song = `{ "track": "${song.track.nid}" }\n`;
+//            fs.appendFile(playlist_file, song, function(err) {
+//                console.log("error: " + err);
+//            })
+//        });
+//    });
+//}
 
 mybot.on("ready", function() {
-    console.log("Ready to begin! Serving in " + mybot.channels.size + " channels");
+    console.log("Ready to begin! Serving in " + mybot.guilds.size + " channels");
 });
 
 mybot.on("message", function(message) {
@@ -167,13 +169,14 @@ mybot.on("message", function(message) {
             }
         }
     }
-
     if (message.content === "!skip") {
-        //console.log("Restarting the script...");
         message.channel.sendMessage("Skipping song...");
         dispatcher[message.guild.id].end();
-        //process.exit(1);
     }
+//    if (message.content.startsWith("!gmusic playlist add ")) {
+//        playlistadd(message.content.replace("!gmusic playlist add ", ""), message.author.id);
+//        console.log();
+//    }
 });
 
 mybot.login(bot_token);
