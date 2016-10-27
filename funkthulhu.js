@@ -17,7 +17,7 @@ var icecast_string;
 var radio;
 var radio_playing = false;
 
-var gQueue = [];
+var gQueue = {};
 var playlist_file = 'user_playlists.json';
 
 function radiolist() {
@@ -26,24 +26,48 @@ function radiolist() {
         stationlist_string += key.toString() + "\n";
     })
 }
-function play(serverId, channel) {
-    if (gQueue.length != 0) {
-        pm.getStreamUrl(gQueue[0], function(err, streamUrl) {
-            dispatcher[serverId] = mybot.voiceConnections.get(serverId).playStream(request(streamUrl), {seek:0, volume:0.1});
-            channel.sendMessage("Currently playing: **fetching this not yet implemented**");
-            dispatcher[serverId].on('end', function() {
-                gQueue.shift();
-                if (gQueue.length != 0) {
-                    play(serverId, channel);
-                } else {
-                    channel.sendMessage("No more songs left in queue");
+function play(song, serverId, channel) {
+    console.log(song + ", " + serverId + ", " + channel);
+    pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
+        pm.search(song, 5, function(err, res) {
+            var gSong = res.entries.filter(function(data) { return data.type == 1 }).shift();
+            if (gQueue[serverId].length != 0 && song != undefined) {
+                gQueue[serverId].push(gSong.track.nid);
+                var queuelength = gQueue[serverId].length - 1;
+                channel.sendMessage("Song has been queued. It is currently number " + queuelength + " in the queue");
+            }
+            else {
+                if (song != undefined)  {
+                    gQueue[serverId].push(gSong.track.nid);
                 }
-            });
+                console.log("...");
+                pm.getStreamUrl(gQueue[serverId][0], function(err, streamUrl) {
+                    dispatcher[serverId] = mybot.voiceConnections.get(serverId).playStream(request(streamUrl), {seek:0, volume:0.33});
+                    channel.sendMessage("Currently playing: **fetching this not yet implemented**");
+                    dispatcher[serverId].on('end', function() {
+                        gQueue[serverId].shift();
+                        if (gQueue[serverId].length != 0) {
+                            play(undefined, serverId, channel);
+                        } else {
+                            channel.sendMessage("No more songs left in queue");
+                        }
+                    });
+                });
+            }
         });
-    } else {
-        channel.sendMessage("No more songs left in queue");
-    }
+    });
+
 }
+//        if (gQueue.length != 0) {
+//            gQueue.push(gSong.track.nid);
+//            var queuelength = gQueue.length - 1;
+//
+//        } else {
+//            gQueue.push(gSong.track.nid);
+//            mybot.user.setStatus("Online", "funky tunes!");
+//        }
+
+
 //function playlistadd(song, author) {
 //    pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
 //        pm.search(song, 5, function(err, res) {
@@ -141,29 +165,18 @@ mybot.on("message", function(message) {
         radiolist();
         message.channel.sendMessage(stationlist_string);
     }
-    if (message.content.startsWith("!gmusic play song ")) {
-        var songsearch_string = message.content.replace("!gmusic play song ", "");
+    if (message.content.startsWith("!gmusic song ")) {
+        var song = message.content.replace("!gmusic song ", "");
+        var serverId = message.guild.id;
+        var channel = message.channel;
         if (!voice_channel || voice_channel.type !== 'voice') {
             message.channel.sendMessage("Error! (are you not in a voice channel?)");
         } else {
             if (mybot.voiceConnections.get(message.guild.id) && mybot.voiceConnections.get(message.guild.id).channel.id == voice_channel.id) {
-                pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
-                    pm.search(songsearch_string, 5, function(err, res) {
-                        var gSong = res.entries.filter(function(data) { return data.type == 1 }).shift();
-                        if (gQueue.length != 0) {
-                            if (gQueue[0] == "placeholder") {
-                                gQueue.shift();
-                            }
-                            gQueue.push(gSong.track.nid);
-                            var queuelength = gQueue.length - 1;
-                            message.channel.sendMessage("Song has been queued. It is currently number " + queuelength + " in the queue");
-                        } else {
-                            gQueue.push(gSong.track.nid);
-                            play(message.guild.id, message.channel);
-                            mybot.user.setStatus("Online", "funky tunes!");
-                        }
-                    });
-                });
+                if (!gQueue[serverId]) {
+                    gQueue[serverId] = [];
+                }
+                play(song, serverId, channel);
             } else {
                 message.channel.sendMessage("Error! (are you not in the same voice channel as I am?)");
             }
@@ -173,13 +186,16 @@ mybot.on("message", function(message) {
         message.channel.sendMessage("Skipping song...");
         dispatcher[message.guild.id].end();
     }
+    if (message.content === "!q") {
+        console.log(gQueue);
+    }
 //    if (message.content.startsWith("!gmusic playlist add ")) {
 //        playlistadd(message.content.replace("!gmusic playlist add ", ""), message.author.id);
 //        console.log();
 //    }
 });
 
-mybot.login(bot_token);
+mybot.login(testbot_token);
 process.on("uncaughtException", (error) => { if(error.code === "ECONNRESET") return; });
 
 //Remember to add local file containing keys and tokens (tokens.js)!!!
