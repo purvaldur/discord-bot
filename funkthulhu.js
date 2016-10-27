@@ -30,21 +30,28 @@ function play(song, serverId, channel) {
     pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
         pm.search(song, 5, function(err, res) {
             var gSong = res.entries.filter(function(data) { return data.type == 1 }).shift();
-            if (gQueue[serverId].length != 0 && song != undefined) {
-                gQueue[serverId].push(gSong.track.nid);
-                var queuelength = gQueue[serverId].length - 1;
+            var songname = gSong.track.title;
+            if (gQueue[serverId].trackId.length != 0 && song != undefined) {
+                gQueue[serverId].trackId.push(gSong.track.nid);
+                gQueue[serverId].artist.push(gSong.track.artist);
+                gQueue[serverId].track.push(gSong.track.title);
+                var queuelength = gQueue[serverId].trackId.length - 1;
                 channel.sendMessage("Song has been queued. It is currently number " + queuelength + " in the queue");
             }
             else {
                 if (song != undefined)  {
-                    gQueue[serverId].push(gSong.track.nid);
+                    gQueue[serverId].trackId.push(gSong.track.nid);
+                    gQueue[serverId].artist.push(gSong.track.artist);
+                    gQueue[serverId].track.push(gSong.track.title);
                 }
-                pm.getStreamUrl(gQueue[serverId][0], function(err, streamUrl) {
+                pm.getStreamUrl(gQueue[serverId].trackId[0], function(err, streamUrl) {
                     dispatcher[serverId] = mybot.voiceConnections.get(serverId).playStream(request(streamUrl), {seek:0, volume:0.33});
-                    channel.sendMessage("Currently playing: **fetching this not yet implemented**");
+                    channel.sendMessage(`Currently playing: **${gQueue[serverId].artist[0]} - ${gQueue[serverId].track[0]}**`);
                     dispatcher[serverId].on('end', function() {
-                        gQueue[serverId].shift();
-                        if (gQueue[serverId].length != 0) {
+                        gQueue[serverId].trackId.shift();
+                        gQueue[serverId].artist.shift();
+                        gQueue[serverId].track.shift();
+                        if (gQueue[serverId].trackId.length != 0) {
                             play(undefined, serverId, channel);
                         } else {
                             channel.sendMessage("No more songs left in queue");
@@ -166,6 +173,9 @@ mybot.on("message", function(message) {
             if (mybot.voiceConnections.get(message.guild.id) && mybot.voiceConnections.get(message.guild.id).channel.id == voice_channel.id) {
                 if (!gQueue[serverId]) {
                     gQueue[serverId] = [];
+                    gQueue[serverId].trackId = [];
+                    gQueue[serverId].artist = [];
+                    gQueue[serverId].track = [];
                 }
                 play(song, serverId, channel);
             } else {
@@ -177,13 +187,16 @@ mybot.on("message", function(message) {
         message.channel.sendMessage("Skipping song...");
         dispatcher[message.guild.id].end();
     }
+//    if (message.content.startsWith("!q")) {
+//        console.log(gQueue);
+//    }
 //    if (message.content.startsWith("!gmusic playlist add ")) {
 //        playlistadd(message.content.replace("!gmusic playlist add ", ""), message.author.id);
 //        console.log();
 //    }
 });
 
-mybot.login(testbot_token);
-process.on("uncaughtException", (error) => { if(error.code === "ECONNRESET") return; });
+mybot.login(bot_token);
+process.on("uncaughtException", (error) => { if(error.code === "ECONNRESET") return });
 
 //Remember to add local file containing keys and tokens (tokens.js)!!!
