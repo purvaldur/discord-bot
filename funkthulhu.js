@@ -74,11 +74,14 @@ mybot.on("ready", function() {
 });
 
 mybot.on("message", function(message) {
-    if(message.content === "!ping") {
+    if (message.content.startsWith("!help")) {
+        message.channel.sendMessage("Want help? Here's a list of commands to get you started:\n\n```!help                       | Prints this list(duuh)\n!ping                       | Makes the bot respond 'pong'\n!join                       | Makes the bot join the voice channel you're currently in.\n!leave                      | Much like !join but makes the bot leave the channel instead\n!radio list                 | Makes the bot return a list of radio channels available to play.\n!radio #STATION             | Makes the bot start streaming a station.\n!radio info                 | Makes the bot respond with metadata of the song/radio if provided.\n!gmusic song #SEACHTERM     | Makes the bot look up the #SEARCHTERM and play it in the voice channel\n!skip                       | makes the bot skip the current !gmusic song being played```");
+    }
+    if(message.content.startsWith("!ping")) {
         message.channel.sendMessage("pong");
         console.log("pong-ed " + message.author.username);
     }
-    if(message.content === "!join") {
+    if (message.content.startsWith("!join")) {
         voice_channel = message.member.voiceChannel;
         if (voice_channel == undefined) {
             message.channel.sendMessage("Error! (are you not in a voice channel?)")
@@ -87,7 +90,7 @@ mybot.on("message", function(message) {
             voice_channel.join()
         }
     }
-    if(message.content === "!leave") {
+    if (message.content.startsWith("!leave")) {
         voice_channel = message.member.voiceChannel;
         if (voice_channel == undefined) {
             message.channel.sendMessage("Error! (are you not in a voice channel?)")
@@ -98,7 +101,7 @@ mybot.on("message", function(message) {
             radio_playing = false;
         }
     }
-    if(message.content.startsWith("!radio ") && message.content !== "!radio info" && message.content !== "!radio list") {
+    if (message.content.startsWith("!radio ") && message.content !== "!radio info" && message.content !== "!radio list") {
         voice_channel = message.member.voiceChannel;
         var radio_string = message.content.replace("!radio ", "");
         radio = streams.streamlist[radio_string];
@@ -131,7 +134,7 @@ mybot.on("message", function(message) {
             message.channel.sendMessage(stationlist_string);
         }
     }
-    if (message.content === "!radio info") {
+    if (message.content.startsWith("!radio info")) {
         if (radio_playing == true) {
             icecast.get(radio, function (response) {
                 response.on('metadata', function (metadata) {
@@ -148,7 +151,7 @@ mybot.on("message", function(message) {
             message.channel.sendMessage("Error! (I'm not playing anything right now, am I?)");
         }
     }
-    if (message.content === "!radio list") {
+    if (message.content.startsWith("!radio list")) {
         message.channel.sendMessage("The following is a list of the currently available stations:\n\n");
         radiolist();
         message.channel.sendMessage(stationlist_string);
@@ -170,7 +173,7 @@ mybot.on("message", function(message) {
             }
         }
     }
-    if (message.content === "!skip") {
+    if (message.content.startsWith("!skip")) {
         message.channel.sendMessage("Skipping song...");
         dispatcher[message.guild.id].end();
     }
@@ -180,7 +183,7 @@ mybot.on("message", function(message) {
 //    }
 });
 
-mybot.login(bot_token);
+mybot.login(testbot_token);
 process.on("uncaughtException", (error) => { if(error.code === "ECONNRESET") return; });
 
 //Remember to add local file containing keys and tokens (tokens.js)!!!
