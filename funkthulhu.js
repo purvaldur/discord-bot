@@ -27,7 +27,6 @@ function radiolist() {
     })
 }
 function play(song, serverId, channel) {
-    console.log(song + ", " + serverId + ", " + channel);
     pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
         pm.search(song, 5, function(err, res) {
             var gSong = res.entries.filter(function(data) { return data.type == 1 }).shift();
@@ -40,7 +39,6 @@ function play(song, serverId, channel) {
                 if (song != undefined)  {
                     gQueue[serverId].push(gSong.track.nid);
                 }
-                console.log("...");
                 pm.getStreamUrl(gQueue[serverId][0], function(err, streamUrl) {
                     dispatcher[serverId] = mybot.voiceConnections.get(serverId).playStream(request(streamUrl), {seek:0, volume:0.33});
                     channel.sendMessage("Currently playing: **fetching this not yet implemented**");
@@ -56,17 +54,7 @@ function play(song, serverId, channel) {
             }
         });
     });
-
 }
-//        if (gQueue.length != 0) {
-//            gQueue.push(gSong.track.nid);
-//            var queuelength = gQueue.length - 1;
-//
-//        } else {
-//            gQueue.push(gSong.track.nid);
-//            mybot.user.setStatus("Online", "funky tunes!");
-//        }
-
 
 //function playlistadd(song, author) {
 //    pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
@@ -186,16 +174,13 @@ mybot.on("message", function(message) {
         message.channel.sendMessage("Skipping song...");
         dispatcher[message.guild.id].end();
     }
-    if (message.content === "!q") {
-        console.log(gQueue);
-    }
 //    if (message.content.startsWith("!gmusic playlist add ")) {
 //        playlistadd(message.content.replace("!gmusic playlist add ", ""), message.author.id);
 //        console.log();
 //    }
 });
 
-mybot.login(testbot_token);
+mybot.login(bot_token);
 process.on("uncaughtException", (error) => { if(error.code === "ECONNRESET") return; });
 
 //Remember to add local file containing keys and tokens (tokens.js)!!!
