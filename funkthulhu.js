@@ -18,7 +18,6 @@ var radio;
 var radio_playing = false;
 
 var gQueue = {};
-var playlist_file = 'user_playlists.json';
 
 function radiolist() {
     stationlist_string = "";
@@ -26,55 +25,60 @@ function radiolist() {
         stationlist_string += key.toString() + "\n";
     })
 }
-function play(song, serverId, channel) {
+function play(song, serverId, channel, playlist, authorId) {
+    if (!gQueue[serverId]) {
+        gQueue[serverId] = [];
+        gQueue[serverId].trackId = [];
+        gQueue[serverId].artist = [];
+        gQueue[serverId].track = [];
+    }
     pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
-        pm.search(song, 5, function(err, res) {
-            var gSong = res.entries.filter(function(data) { return data.type == 1 }).shift();
-            var songname = gSong.track.title;
-            if (gQueue[serverId].trackId.length != 0 && song != undefined) {
-                gQueue[serverId].trackId.push(gSong.track.nid);
-                gQueue[serverId].artist.push(gSong.track.artist);
-                gQueue[serverId].track.push(gSong.track.title);
-                var queuelength = gQueue[serverId].trackId.length - 1;
-                channel.sendMessage("Song has been queued. It is currently number " + queuelength + " in the queue");
-            }
-            else {
-                if (song != undefined)  {
+        if (playlist == undefined) {
+            pm.search(song, 5, function(err, res) {
+                var gSong = res.entries.filter(function(data) { return data.type == 1 }).shift();
+                var songname = gSong.track.title;
+                if (gQueue[serverId].trackId.length != 0 && song != undefined) {
                     gQueue[serverId].trackId.push(gSong.track.nid);
                     gQueue[serverId].artist.push(gSong.track.artist);
                     gQueue[serverId].track.push(gSong.track.title);
+                    var queuelength = gQueue[serverId].trackId.length - 1;
+                    channel.sendMessage("Song has been queued. It is currently number " + queuelength + " in the queue");
                 }
-                pm.getStreamUrl(gQueue[serverId].trackId[0], function(err, streamUrl) {
-                    dispatcher[serverId] = mybot.voiceConnections.get(serverId).playStream(request(streamUrl), {seek:0, volume:0.33});
-                    channel.sendMessage(`Currently playing: **${gQueue[serverId].artist[0]} - ${gQueue[serverId].track[0]}**`);
-                    dispatcher[serverId].on('end', function() {
-                        gQueue[serverId].trackId.shift();
-                        gQueue[serverId].artist.shift();
-                        gQueue[serverId].track.shift();
-                        if (gQueue[serverId].trackId.length != 0) {
-                            play(undefined, serverId, channel);
-                        } else {
-                            channel.sendMessage("No more songs left in queue");
-                        }
+                else {
+                    if (song != undefined)  {
+                        gQueue[serverId].trackId.push(gSong.track.nid);
+                        gQueue[serverId].artist.push(gSong.track.artist);
+                        gQueue[serverId].track.push(gSong.track.title);
+                    }
+                    pm.getStreamUrl(gQueue[serverId].trackId[0], function(err, streamUrl) {
+                        dispatcher[serverId] = mybot.voiceConnections.get(serverId).playStream(request(streamUrl), {seek:0, volume:0.33});
+                        channel.sendMessage(`Currently playing: **${gQueue[serverId].artist[0]} - ${gQueue[serverId].track[0]}**`);
+                        dispatcher[serverId].on('end', function() {
+                            gQueue[serverId].trackId.shift();
+                            gQueue[serverId].artist.shift();
+                            gQueue[serverId].track.shift();
+                            if (gQueue[serverId].trackId.length != 0) {
+                                play(undefined, serverId, channel, undefined, undefined);
+                            } else {
+                                channel.sendMessage("No more songs left in queue");
+                            }
+                        });
                     });
-                });
+                }
+            });
+        }
+        if (playlist != undefined) {
+            var glist = JSON.parse(fs.readFileSync('user_playlists.json', 'utf8'));
+            for (var i = 0; i < glist[authorId][playlist].trackId.length; i++) {
+                gQueue[serverId].trackId.push(glist[authorId][playlist].trackId[i]);
+                gQueue[serverId].artist.push(glist[authorId][playlist].artist[i]);
+                gQueue[serverId].track.push(glist[authorId][playlist].track[i]);
             }
-        });
+            channel.sendMessage("All the songs in the playlist has been queued!");
+            play(undefined, serverId, channel, undefined, undefined);
+        }
     });
 }
-
-//function playlistadd(song, author) {
-//    pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
-//        pm.search(song, 5, function(err, res) {
-//            song = res.entries.filter(function(data) { return data.type == 1 }).shift();
-//            author = `{ "${}" }`
-//            song = `{ "track": "${song.track.nid}" }\n`;
-//            fs.appendFile(playlist_file, song, function(err) {
-//                console.log("error: " + err);
-//            })
-//        });
-//    });
-//}
 
 mybot.on("ready", function() {
     console.log("Ready to begin! Serving in " + mybot.guilds.size + " channels");
@@ -171,32 +175,151 @@ mybot.on("message", function(message) {
             message.channel.sendMessage("Error! (are you not in a voice channel?)");
         } else {
             if (mybot.voiceConnections.get(message.guild.id) && mybot.voiceConnections.get(message.guild.id).channel.id == voice_channel.id) {
-                if (!gQueue[serverId]) {
-                    gQueue[serverId] = [];
-                    gQueue[serverId].trackId = [];
-                    gQueue[serverId].artist = [];
-                    gQueue[serverId].track = [];
-                }
-                play(song, serverId, channel);
+                play(song, serverId, channel, undefined, undefined);
             } else {
                 message.channel.sendMessage("Error! (are you not in the same voice channel as I am?)");
             }
         }
     }
+    if (message.content.startsWith("!glist create ")) {
+        var listname = message.content.replace("!glist create ", "");
+        var glist = JSON.parse(fs.readFileSync('user_playlists.json', 'utf8'));
+        if (!glist.hasOwnProperty(message.author.id)) {
+            glist[message.author.id] = {};
+        }
+        if (!glist[message.author.id].hasOwnProperty(listname)) {
+            glist[message.author.id][listname] = {};
+            glist[message.author.id][listname].trackId = [];
+            glist[message.author.id][listname].artist = [];
+            glist[message.author.id][listname].track = [];
+            glist = JSON.stringify(glist);
+            fs.writeFileSync('user_playlists.json', glist);
+            message.channel.sendMessage("List have been succesfully created");
+        } else {
+            message.channel.sendMessage("Error: You already have playlist with that name!");
+        }
+    }
+    if (message.content.startsWith("!glist add ")) {
+        var splitter = message.content.replace("!glist add ", "");
+        var listname = underscore.first(splitter.split(" "));
+        var song = splitter.replace(`${listname} `, "");
+        var glist = JSON.parse(fs.readFileSync('user_playlists.json', 'utf8'));
+        if (!glist.hasOwnProperty(message.author.id) || !glist[message.author.id].hasOwnProperty(listname)) {
+            message.channel.sendMessage(`Error: You do not have a playlist with the name "${listname}". You can create a playlist by writing "!glist create #NAME"`);
+        } else {
+            pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
+                pm.search(song, 5, function(err, res) {
+                    if (res == null) {
+                        message.channel.sendMessage("Error: Could not find the song in my database of **30 MILLION** songs!? Really!? Are you by any change suffering from dyslexia?")
+                        return;
+                    }
+                    var gSong = res.entries.filter(function(data) { return data.type == 1 }).shift();
+                    glist[message.author.id][listname].trackId.push(gSong.track.nid);
+                    glist[message.author.id][listname].artist.push(gSong.track.artist);
+                    glist[message.author.id][listname].track.push(gSong.track.title);
+                    glist = JSON.stringify(glist);
+                    fs.writeFileSync('user_playlists.json', glist);
+                    message.channel.sendMessage(`Succesfully added **${gSong.track.artist} - ${gSong.track.title}**`);
+                });
+            });
+        }
+    }
+    if (message.content.startsWith("!glist play ")) {
+        var listname = message.content.replace("!glist play ", "");
+        var serverId = message.guild.id;
+        var channel = message.channel;
+        var authorId = message.author.id;
+        var glist = JSON.parse(fs.readFileSync('user_playlists.json', 'utf8'));
+        console.log("funk");
+        if (glist[authorId][listname].trackId.length >= 1) {
+            if (!voice_channel || voice_channel.type !== 'voice') {
+            message.channel.sendMessage("Error! (are you not in a voice channel?)");
+            } else {
+                if (mybot.voiceConnections.get(message.guild.id) && mybot.voiceConnections.get(message.guild.id).channel.id == voice_channel.id) {
+                    play(undefined, serverId, channel, listname, authorId);
+                } else {
+                    message.channel.sendMessage("Error! (are you not in the same voice channel as I am?)");
+                }
+            }
+        } else {
+            channel.sendMessage("Your playlist appears to competely empty. You need to add some funky tunes I can play first.");
+        }
+    }
+    if (message.content.startsWith("!glist list")) {
+        var glist = JSON.parse(fs.readFileSync('user_playlists.json', 'utf8'));
+        var listmessage = "";
+        if (message.content.length > 11) {
+            var listname = message.content.replace("!glist list ", "");
+            if (!glist[message.author.id][listname]) {
+                message.channel.sendMessage('Error: You do not have a playlist with that name. Write "!glist list" to see your personal playlists');
+                return;
+            }
+            if ( glist[message.author.id][listname].trackId.length < 1) {
+                message.channel.sendMessage(`Error: that playlist is empty. Write "!glist add ${listname} #SEARCHTERM" to add songs to your playlist. Remember to replace #SEARCHTERM with your actual search!`);
+                return;
+            }
+            listmessage += "List of all the songs in " + listname + ":\n ```";
+            for (var i = 0; i < glist[message.author.id][listname].trackId.length; i++) {
+                listmessage += `[${i}]: ${glist[message.author.id][listname].artist[i]} - ${glist[message.author.id][listname].track[i]}\n`;
+            }
+            listmessage += "```";
+        } else {
+            var listname = message.content.replace("!glist list", "");
+            listmessage += "Here's a list of all your playlists:\n ```";
+            for (var i = 0; i < Object.keys(glist[message.author.id]).length; i++) {
+                listmessage += `[${i}]: ${Object.keys(glist[message.author.id])[i]}\n`;
+            }
+            listmessage += "```";
+        }
+        message.channel.sendMessage(listmessage)
+    }
+    if (message.content.startsWith("!glist nuke ")) {
+        var listname = message.content.replace("!glist nuke ", "");
+        var glist = JSON.parse(fs.readFileSync('user_playlists.json', 'utf8'));
+        if (glist[message.author.id].hasOwnProperty(listname)) {
+            delete glist[message.author.id][listname];
+            glist = JSON.stringify(glist);
+            fs.writeFileSync('user_playlists.json', glist);
+            message.channel.sendMessage("Playlist has been nuked.")
+        } else {
+            message.channel.sendMessage("Error: Unable to find playlist with that name in my database.")
+        }
+    }
+    if (message.content.startsWith("!glist delete ")) {
+        var splitter = message.content.replace("!glist delete ", "");
+        var spacecount = (splitter.match(/ /g) || []).length;
+        if (spacecount != 1) {
+            message.channel.sendMessage('Error: The format for this message should be ```!glist delete #LIST #NUM```')
+            return;
+        }
+        var listname = splitter.substr(0, splitter.indexOf(' '));
+        var tracknumber = splitter.replace(listname, "").replace(' ', '');
+        var glist = JSON.parse(fs.readFileSync('user_playlists.json', 'utf8'));
+        var artist = glist[message.author.id][listname].artist[tracknumber];
+        var track = glist[message.author.id][listname].track[tracknumber];
+        glist[message.author.id][listname].trackId.splice(tracknumber, 1);
+        glist[message.author.id][listname].artist.splice(tracknumber, 1);
+        glist[message.author.id][listname].track.splice(tracknumber, 1);
+        console.log(glist[message.author.id][listname]);
+        glist = JSON.stringify(glist);
+        console.log(glist);
+        fs.writeFileSync('user_playlists.json', glist);
+        message.channel.sendMessage(`Succesfully deleted **${artist}** - **${track}** from the playlist.`);
+    }
+    if (message.content.startsWith("!glist help")) {
+        message.channel.sendMessage('```\n!glist help                     | Prints this list\n!glist create #NAME             | Creates a playlist with #NAME. Playlists are user-unique, and other people will not have access to your playlist.\n!glist add #LIST #SEARCHTERM    | adds a song to your playlist. Replace #LIST with the name of your playlist.\n!glist list (#LIST)             | Displays a list of songs in a playlist. If no playlist is supplied, prints a list of your playlists\n!glist delete #LIST #NUM        | Deletes a song from a playlist, based on the number. You can find the number of the songs by doing "!glist list"\n!glist nuke #LIST               | Nukes a playlist, deleting it entirely.\n!glist play #LIST               | Similiar to "!gmusic play", and puts the entire playlist onto the queue\n```')
+    }
     if (message.content.startsWith("!skip")) {
         message.channel.sendMessage("Skipping song...");
-        dispatcher[message.guild.id].end();
+        try {
+            dispatcher[message.guild.id].end();
+        } catch (e) {
+            message.channel.sendMessage("Error: skip failed. The most common reason for this is trying to skip while I'm not playing anything")
+        }
     }
-//    if (message.content.startsWith("!q")) {
-//        console.log(gQueue);
-//    }
-//    if (message.content.startsWith("!gmusic playlist add ")) {
-//        playlistadd(message.content.replace("!gmusic playlist add ", ""), message.author.id);
-//        console.log();
-//    }
 });
 
 mybot.login(bot_token);
-process.on("uncaughtException", (error) => { if(error.code === "ECONNRESET") return });
+process.on("uncaughtException", (error) => { if(error.code === "ECONNRESET") return; });
 
 //Remember to add local file containing keys and tokens (tokens.js)!!!
