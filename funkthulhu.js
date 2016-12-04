@@ -490,7 +490,7 @@ bot.on("message", function(message) {
         }
     }
 
-    if (message.content.startsWith("!gq list ")) {
+    if (message.content.startsWith("!gq list")) {
         if (!gQueue[message.guild.id].trackId || gQueue[message.guild.id].trackId.length == 0) {
             message.channel.sendMessage('The queue is currently empty. Do ``!gm song #NAME`` or ``!gl play #NAME`` to start playing some funky tunes');
             return;
@@ -507,16 +507,18 @@ bot.on("message", function(message) {
         listmessage += "```";
         message.channel.sendMessage(listmessage);
     }
-    if (message.content.startsWith("!gq nuke ")) {
+    if (message.content.startsWith("!gq nuke")) {
         if (gQueue[message.guild.id]) {
             message.channel.sendMessage('No more funky tunes? *sigh* fineee... *nukes the queue*');
-            gQueue[message.guild.id] = [];
+            gQueue[message.guild.id].trackId = [];
+            gQueue[message.guild.id].artist = [];
+            gQueue[message.guild.id].track = [];
             dispatcher[message.guild.id].end();
             return;
         }
         message.channel.sendMessage('the queue is currently empty. Do ``!gm song #NAME`` or ``!gl play #NAME`` to start playing some funky tunes');
     }
-    if (message.content.startsWith("!gq shuffle ")) {
+    if (message.content.startsWith("!gq shuffle")) {
         if (!gQueue[message.guild.id].trackId || gQueue[message.guild.id].trackId.length == 0) {
             message.channel.sendMessage('The queue is currently empty. Do ``!gm song #NAME`` or ``!gl play #NAME`` to start playing some funky tunes');
             return;
