@@ -1,0 +1,2 @@
+bot_token = 'MTc0NTM1NzExNjMyOTE2NDgw.C1QknQ.3GciowZSwBvVnB1SABQu96Iq8D0'
+
