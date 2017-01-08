@@ -1,0 +1,34 @@
+{
+  "name": "funky-bot",
+  "version": "1.0.0",
+  "description": "This is a bot I wrote for the chat application called [Discord](https://discordapp.com/). It is built upon the [Discord.JS](https://github.com/hydrabolt/discord.js/) framework.",
+  "main": "funkthulhu.js",
+  "dependencies": {
+    "discord.js": "^9.3.0",
+    "https": "^1.0.0",
+    "jsonfile": "^2.4.0",
+    "fs": "^0.0.1-security",
+    "lolapi": "^0.3.1",
+    "icecast": "^1.3.1",
+    "lame": "^1.2.4",
+    "playmusic": "^2.2.0",
+    "request": "^2.74.0",
+    "underscore": "^1.8.3",
+    "sleep": "^4.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node funkthulhu.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/purvaldur/discord-bot.git"
+  },
+  "author": "Thorvald Kjartansson",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/purvaldur/discord-bot/issues"
+  },
+  "homepage": "https://github.com/purvaldur/discord-bot#readme"
+}
