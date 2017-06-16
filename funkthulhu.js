@@ -13,8 +13,10 @@ var dispatcher = [];
 var radio_dispatcher = [];
 var gQueue = {};
 var glist = JSON.parse(fs.readFileSync(__dirname + '/user_playlists.json', 'utf8'));
+var channel;
 
 function play(message, search, type) {
+    console.log(message.author.username + ' wrote: "' + message.content + '"');
     if (!gQueue[message.guild.id]) {
         gQueue[message.guild.id] = [];
         gQueue[message.guild.id].trackId = [];
@@ -22,9 +24,9 @@ function play(message, search, type) {
         gQueue[message.guild.id].track = [];
     }
     pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
-        pm.search(search, 7, function(err, res) {
-            if (res.entries == undefined && search != undefined) {
-                message.channel.sendMessage("**Error:** http://i.imgur.com/fJNbVWN.png")
+        pm.search(search, 10, function(err, res) {
+            if (res.entries == undefined && search != undefined || res.entries.filter(function(data) { return data.type == 1 }).shift() == undefined) {
+                message.channel.sendMessage("**Error:** https://gfycat.com/WelcomeUnrulyFirefly")
                 return;
             }
             if (type == "song") {
@@ -32,14 +34,15 @@ function play(message, search, type) {
                     var result = res.entries.filter(function(data) { return data.type == 1 }).shift();
                     if (gQueue[message.guild.id].trackId.length > 0) {
                         message.channel.sendMessage(`**${result.track.artist} - ${result.track.title}** has been queued. The song is currently number ${gQueue[message.guild.id].trackId.length} in the queue`);
-                        gQueue[message.guild.id].trackId.push(result.track.nid);
+                        gQueue[message.guild.id].trackId.push(result.track.storeId);
                         gQueue[message.guild.id].artist.push(result.track.artist);
                         gQueue[message.guild.id].track.push(result.track.title);
                         return
                     }
-                    gQueue[message.guild.id].trackId.push(result.track.nid);
+                    gQueue[message.guild.id].trackId.push(result.track.storeId);
                     gQueue[message.guild.id].artist.push(result.track.artist);
                     gQueue[message.guild.id].track.push(result.track.title);
+                    console.log(gQueue[message.guild.id]);
                 }
                 pm.getStreamUrl(gQueue[message.guild.id].trackId[0], function(err, streamUrl) {
                     dispatcher[message.guild.id] = bot.voiceConnections.get(message.guild.id).playStream(request(streamUrl), {seek:0, volume:0.15});
@@ -61,10 +64,11 @@ function play(message, search, type) {
             } else if (type == "artist") {
                 var result = res.entries.filter(function(data) { return data.type == 2 }).shift();
                 pm.getArtist(result.artist.artistId, false, 5, 0, function(err, res) {
-                    var helpmessage = `Adding **${res.name}'s** top 5 songs to the queue`;
+                    message.channel.sendMessage(`Adding **${res.name}'s** top 5 songs to the queue`);
+                    var helpmessage = ``;
                     for (var i = 0; i < res.topTracks.length; i++) {
                         helpmessage += `**${res.topTracks[i].artist} - ${res.topTracks[i].title}** has been added to the queue\n`;
-                        gQueue[message.guild.id].trackId.push(res.topTracks[i].nid);
+                        gQueue[message.guild.id].trackId.push(res.topTracks[i].storeId);
                         gQueue[message.guild.id].artist.push(res.topTracks[i].artist);
                         gQueue[message.guild.id].track.push(res.topTracks[i].title);
                     }
@@ -81,7 +85,7 @@ function play(message, search, type) {
                     var helpmessage = ``;
                     for (var i = 0; i < res.tracks.length; i++) {
                         helpmessage += `**${res.tracks[i].artist} - ${res.tracks[i].title}** has been added to the queue\n`;
-                        gQueue[message.guild.id].trackId.push(res.tracks[i].nid);
+                        gQueue[message.guild.id].trackId.push(res.tracks[i].storeId);
                         gQueue[message.guild.id].artist.push(res.tracks[i].artist);
                         gQueue[message.guild.id].track.push(res.tracks[i].title);
                     }
@@ -116,15 +120,66 @@ function shuffle(obj1, obj2, obj3) {
         i += 1;
     }
 }
-function info() {
-    //fdsaf;
-}
+function info(message, lookup, type) {
+    console.log(message.author.username + ' wrote: "' + message.content + '"');
+    pm.init({androidId: android_id, masterToken: android_masterToken}, function(err) {
+        pm.search(lookup, 5, function(err, res) {
+            if (type == "artist") {
+                console.log(res);
+                var result = res.entries.filter(function(data) { return data.type == 2 }).shift();
+                pm.getArtist(result.artist.artistId, true, 5, 0, function(err, res) {
+                    console.log(res);
+                    if (err) {
+                        console.log(err);
+                        return;
+                    };
+                    message.channel.sendMessage(res.artistArtRef);
+                    var theMessage = `**Artist Name:** ${res.name}\n`;
+                    message.channel.sendMessage(theMessage);
+                    var theMessage = `**Artist Bio:**\n${res.artistBio}`;
+                    message.channel.sendMessage(theMessage);
+                    var theMessage = `**\nTop 5 songs:**\n`;
+                    for (var i = 0; i < res.topTracks.length; i++) {
+                        theMessage += `${res.topTracks[i].artist} - ${res.topTracks[i].title}\n`;
+                    }
+                    message.channel.sendMessage(theMessage);
+                    var theMessage = `**\nAlbum list:**\n`;
+                    for (var i = 0; i < res.albums.length; i++) {
+                        theMessage += `${res.albums[i].artist} - ${res.albums[i].name}\n`;
+                    }
+                    message.channel.sendMessage(theMessage);
+                });
+            };
+            if (type == "album") {
+                var result = res.entries.filter(function(data) { return data.type == 3 }).shift();
+                pm.getAlbum(result.album.albumId, true, function(err, res) {
+                    var theMessage = `Here's a list of all the songs in **${res.name}** by **${res.artist}**:\n`
+                    theMessage += '```css\n'
+                    for (var i = 0; i < res.tracks.length; i++) {
+                        var minutes = Math.floor(res.tracks[i].durationMillis/1000/60);
+                        var seconds = res.tracks[i].durationMillis/1000/60-minutes;
+                        if (i+1 < 10) {
+                            theMessage += ' ';
+                        }
+                        theMessage += `${i+1}: [${minutes}:${Math.floor(seconds*60)}] ${res.tracks[i].title}\n`;
+                    }
+                    message.channel.sendMessage(theMessage + '```');
+                });
+            }
+        });
+    });
+};
 
 bot.on("ready", function() {
     console.log("Ready to begin! Serving in " + bot.guilds.size + " channels");
+    bot.user.setGame("in " + bot.guilds.size + " servers for " + bot.users.size + " people")
 });
+bot.on('disconnect', function(err) {
+    console.log("Disconnected: " + err);
+})
 
 bot.on("message", function(message) {
+    channel = message.channel
     if (message.content.startsWith("!help")) {
         var helpmessage = "Need help? Here's a list of commands to get you started:\n\n";
         helpmessage += '```';
@@ -135,7 +190,10 @@ bot.on("message", function(message) {
         helpmessage += '\n';
         helpmessage += '!gl help                  | Prints instructions for "!gl" commands\n';
         helpmessage += '!gq help                  | Prints instructions for "!gq" commands\n';
-        helpmessage += '!gm help                  | Prints instructions for "!gm" commands';
+        helpmessage += '!gm help                  | Prints instructions for "!gm" commands\n\n';
+        helpmessage += '#MISC COMMANDS (Other usefull commands)\n';
+        helpmessage += '!gi artist                | Displays info about the artist\n';
+        helpmessage += '!gi album                 | Displays info about the album';
         helpmessage += '```';
         message.channel.sendMessage(helpmessage);
     }
@@ -179,6 +237,11 @@ bot.on("message", function(message) {
     }
     if (message.content.startsWith("!leave")) {
         if (bot.voiceConnections.get(message.guild.id) && message.member.voiceChannel && bot.voiceConnections.get(message.guild.id).channel.id == message.member.voiceChannel.id) {
+            if (gQueue[message.guild.id]) {
+                gQueue[message.guild.id].trackId = [];
+                gQueue[message.guild.id].artist = [];
+                gQueue[message.guild.id].track = [];
+            }
             message.channel.sendMessage("leaving **" + message.member.voiceChannel.name + "**");
             message.member.voiceChannel.leave();
             return;
@@ -275,7 +338,7 @@ bot.on("message", function(message) {
                         return;
                     }
                     var result = res.entries.filter(function(data) { return data.type == 1 }).shift();
-                    glist.public[message.guild.id][listname].trackId.push(result.track.nid);
+                    glist.public[message.guild.id][listname].trackId.push(result.track.storeId);
                     glist.public[message.guild.id][listname].artist.push(result.track.artist);
                     glist.public[message.guild.id][listname].track.push(result.track.title);
                     fs.writeFileSync(__dirname + '/user_playlists.json', JSON.stringify(glist));
@@ -297,7 +360,7 @@ bot.on("message", function(message) {
                     return;
                 }
                 var result = res.entries.filter(function(data) { return data.type == 1 }).shift();
-                glist.private[message.author.id][listname].trackId.push(result.track.nid);
+                glist.private[message.author.id][listname].trackId.push(result.track.storeId);
                 glist.private[message.author.id][listname].artist.push(result.track.artist);
                 glist.private[message.author.id][listname].track.push(result.track.title);
                 fs.writeFileSync(__dirname + '/user_playlists.json', JSON.stringify(glist));
@@ -307,7 +370,7 @@ bot.on("message", function(message) {
     }
     if (message.content.startsWith("!gl list")) { //TODO: Rewrite shiiiet ("gl delete" for example)
         if (message.content.length == 8) {
-            if (Object.keys(glist.private[message.author.id]).length == 0) {
+            if (glist.private[message.author.id] == undefined || Object.keys(glist.private[message.author.id]).length == 0) {
                 message.channel.sendMessage('**Error:** You do not have any playlists in your name. Write ``!gl create #NAME`` to make your first playlist');
                 return;
             }
@@ -491,7 +554,7 @@ bot.on("message", function(message) {
     }
 
     if (message.content.startsWith("!gq list")) {
-        if (!gQueue[message.guild.id].trackId || gQueue[message.guild.id].trackId.length == 0) {
+        if (!gQueue[message.guild.id] || gQueue[message.guild.id].trackId.length == 0) {
             message.channel.sendMessage('The queue is currently empty. Do ``!gm song #NAME`` or ``!gl play #NAME`` to start playing some funky tunes');
             return;
         }
@@ -532,19 +595,25 @@ bot.on("message", function(message) {
         gQueue[message.guild.id].track.unshift(tempTra);
         message.channel.sendMessage('The queue has been shuffled. Write ``!gq list`` to see the new queue');
     }
+
+    if (message.content.startsWith('!gi artist')) {
+        info(message, message.content.replace("!gi artist ", ""), "artist");
+    }
+    if (message.content.startsWith('!gi album')) {
+        info(message, message.content.replace("!gi album ", ""), "album");
+    }
 });
 
+bot.on("guildMemberAdd", function() {bot.user.setGame("in " + bot.guilds.size + " servers for " + bot.users.size + " people")})
+bot.on("guildMemberRemove", function() {bot.user.setGame("in " + bot.guilds.size + " servers for " + bot.users.size + " people")})
+bot.on("guildCreate", function() {bot.user.setGame("in " + bot.guilds.size + " servers for " + bot.users.size + " people")})
+bot.on("guildDelete", function() {bot.user.setGame("in " + bot.guilds.size + " servers for " + bot.users.size + " people")})
+
 bot.login(bot_token);
-process.on("uncaughtException", (error) => { if(error.code === "ECONNRESET") return; });
 
-//For avoidong Heroku $PORT error
-var express = require('express');
-var app = express();
-
-app.set('port', (process.env.PORT || 5000));
-app.get('/', function(request, response) {
-    var result = 'App is running'
-    response.send(result);
-}).listen(app.get('port'), function() {
-    console.log('App is running, server is listening on port ', app.get('port'));
+process.on("uncaughtException", (error) => {
+    if(error.code === "ECONNRESET") {console.log(error);return;}
+    channel.sendMessage("Oh no, something went wrong! This shouldn't happen! Can you please tell the guy who created me to check my logs so he can fix me and prevent this from happening again?\nAlso, since that the thing that shouldn't have happened happened, I need to restart, otherwise I'll start to behave... oddly. Please bear with me for a few seconds.\n\nIf I'm in a voice channel you're going to need to write ``!join`` again. Even though it may seem like I'm still in the voicechannel, I have in fact just restarted and the... *thing*... you're seeing the voice channel is my former ghost!");
+    console.log(error.stack);
+    setTimeout(function() {process.exit(1)},100)
 });
